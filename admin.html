@@ -31,6 +31,15 @@
   .p-never{background:#2b1f2f;color:#d98aa0}
   .hide{display:none}
   .mu{color:var(--mu)}
+  button:disabled{opacity:.75;cursor:wait}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .fade{animation:fd .5s ease}
+  @keyframes fd{from{opacity:.2;transform:translateY(-3px)}to{opacity:1;transform:none}}
+  tr.flash td{animation:fl 2.2s ease-out}
+  @keyframes fl{0%{background:rgba(95,211,154,.38)}100%{background:transparent}}
+  .pulse{animation:pl .5s ease}
+  @keyframes pl{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
 </style>
 </head>
 <body>
@@ -66,7 +75,7 @@
           <tr>
             <th data-k="class_no">No.</th>
             <th data-k="name">Name</th>
-            <th data-k="last_seen_at">Last login</th>
+            <th data-k="last_seen_at">Last seen</th>
             <th data-k="status">Status</th>
             <th data-k="recorded">Recorded</th>
             <th data-k="rated">Rated</th>
@@ -77,7 +86,7 @@
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <p class="mu" style="margin-bottom:0">"Last login" is the most recent time that student signed in. Times are shown in your local time zone. The page refreshes by itself every 30 seconds.</p>
+    <p class="mu" style="margin-bottom:0">"Online" means the student's page checked in within the last 2 minutes. If they close the page or switch to another tab, they show as offline after about 2 minutes. "Last seen" is the last check-in. Times are in your local time zone. The page refreshes by itself every 30 seconds.</p>
   </div>
 </div>
 
@@ -88,8 +97,8 @@ const $ = id => document.getElementById(id);
 
 function status(s){
   if(!s.last_seen_at) return {k:3, t:'Never logged in', c:'p-never'};
-  const mins = (Date.now() - new Date(s.last_seen_at).getTime()) / 60000;
-  if(mins <= 15)   return {k:0, t:'Active now', c:'p-now'};
+  const secs = (Date.now() - new Date(s.last_seen_at).getTime()) / 1000;
+  if(secs <= 150)  return {k:0, t:'Online', c:'p-now'};
   const d = new Date(s.last_seen_at), n = new Date();
   if(d.toDateString() === n.toDateString()) return {k:1, t:'Today', c:'p-today'};
   return {k:2, t:'Earlier', c:'p-old'};
@@ -123,18 +132,38 @@ async function signIn(){
   }
 }
 
+let prev = null;
+const sig = s => [s.last_seen_at, s.recorded, s.rated, s.levels_passed, s.levels.join(',')].join('|');
+
 async function load(){
+  const btn = $('refresh');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>Refreshing…';
+  const t0 = Date.now();
   try{
     const r = await call('/api/admin/results');
     if(r.status === 401){ signOut('Session expired. Please sign in again.'); return; }
     if(!r.ok) return;
     data = (await r.json()).students;
-    $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
-    render();
-  }catch(e){ $('updated').textContent = 'Connection problem. Retrying…'; }
+    // keep the spinner visible for at least 700 ms so the animation is noticeable
+    await new Promise(res => setTimeout(res, Math.max(0, 700 - (Date.now() - t0))));
+    const changed = new Set();
+    if(prev) data.forEach(s => { if(prev[s.class_no] !== undefined && prev[s.class_no] !== sig(s)) changed.add(s.class_no); });
+    prev = Object.fromEntries(data.map(s => [s.class_no, sig(s)]));
+    const u = $('updated');
+    u.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    u.classList.remove('fade'); void u.offsetWidth; u.classList.add('fade');
+    render(changed);
+    document.querySelectorAll('.stat').forEach(el => { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); });
+  }catch(e){
+    $('updated').textContent = 'Connection problem. Retrying…';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Refresh';
+  }
 }
 
-function render(){
+function render(changed = new Set()){
   const q = $('filter').value.trim().toLowerCase();
   let list = data.map(s => ({...s, _st: status(s)}));
   const total = list.length;
@@ -142,7 +171,7 @@ function render(){
   const now = list.filter(s => s._st.k === 0).length;
   const today = list.filter(s => s._st.k <= 1).length;
   $('stats').innerHTML =
-    `<div class="stat"><b>${now}</b>active now</div>` +
+    `<div class="stat"><b>${now}</b>online now</div>` +
     `<div class="stat"><b>${today}</b>logged in today</div>` +
     `<div class="stat"><b>${total - never}</b>logged in at least once</div>` +
     `<div class="stat"><b>${never}</b>never logged in</div>` +
@@ -156,7 +185,7 @@ function render(){
     return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
   });
   $('rows').innerHTML = list.map(s =>
-    `<tr><td>${s.class_no}</td><td>${esc(s.name)}</td><td>${fmt(s.last_seen_at)}</td>` +
+    `<tr class="${changed.has(s.class_no) ? 'flash' : ''}"><td>${s.class_no}</td><td>${esc(s.name)}</td><td>${fmt(s.last_seen_at)}</td>` +
     `<td><span class="pill ${s._st.c}">${s._st.t}</span></td>` +
     `<td>${s.recorded}</td><td>${s.rated}</td><td>${s.levels_passed}/5</td>` +
     `<td class="mu">${s.levels.map(v => v === null ? '–' : v).join(' · ')}</td></tr>`
@@ -184,7 +213,7 @@ $('pw').addEventListener('keydown', e => { if(e.key === 'Enter') signIn(); });
 $('refresh').onclick = load;
 $('csv').onclick = downloadCsv;
 $('out').onclick = () => signOut();
-$('filter').addEventListener('input', render);
+$('filter').addEventListener('input', () => render());
 document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
   const k = th.dataset.k;
   sortDir = sortKey === k ? -sortDir : 1; sortKey = k; render();
