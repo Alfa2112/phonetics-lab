@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 /* Base URL of the Phonetics Lab API, no trailing slash. Leave empty to run fully offline. */
-const API_URL='http://localhost:3000';
+const API_URL='https://phonetics-backend-production.up.railway.app';
 const ADMIN_HASH='8d008f8b98c07ba5072c02dc108351f872260bb6af85a016253f2e084909eba5'; /* SHA-256 of the admin password */
 /* true = students must record every sound in order to unlock the next step. false = every section is open. */
 const REQUIRE_RECORDING=false;
