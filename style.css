@@ -378,14 +378,3 @@ input:hover,select:hover{border-color:var(--p2);box-shadow:0 0 14px rgba(255,138
 .fc:hover>div{transform:translateY(-6px) scale(1.02)}
 .pr{transition:all .2s ease;border-radius:10px}
 .pr:hover{background:rgba(255,138,61,.08);box-shadow:0 4px 12px rgba(0,0,0,.2)}
-
-/* Interactive acoustic cursor follower & sparkles */
-@media (hover: hover) and (pointer: fine) {
-  .cursor-dot{position:fixed;top:0;left:0;width:8px;height:8px;background:var(--p2);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:opacity .25s,transform .12s ease-out,background .25s;box-shadow:0 0 12px var(--p2),0 0 20px var(--p)}
-  .cursor-ring{position:fixed;top:0;left:0;width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(255,179,107,.7);background:rgba(255,138,61,.04);pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:width .28s cubic-bezier(.34,1.56,.64,1),height .28s cubic-bezier(.34,1.56,.64,1),border-color .25s,background .25s,box-shadow .25s,opacity .25s;box-shadow:0 0 16px rgba(255,138,61,.2);backdrop-filter:blur(.5px)}
-  .cursor-ring.hovering{width:56px;height:56px;border-color:var(--lem);background:rgba(255,214,90,.16);box-shadow:0 0 24px rgba(255,214,90,.5)}
-  .cursor-ring.clicking{width:26px;height:26px;border-color:var(--mag);background:rgba(232,71,155,.35);transform:translate(-50%,-50%) scale(.8)}
-  .cursor-sparkle{position:fixed;pointer-events:none;border-radius:50%;z-index:99997;animation:sparkleFade .65s cubic-bezier(.16,1,.3,1) forwards}
-  @keyframes sparkleFade{0%{transform:translate(-50%,-50%) scale(1);opacity:.9}100%{transform:translate(-50%,-50%) translateY(-14px) scale(.2);opacity:0}}
-}
-@media (hover: none) or (pointer: coarse){.cursor-dot,.cursor-ring,.cursor-sparkle{display:none!important}}
