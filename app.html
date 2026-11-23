@@ -190,7 +190,7 @@
   <div style="display: flex; justify-content: center; gap: 14px; font-size: 0.8rem;">
     <a href="https://github.com/alfa2112" target="_blank" style="color: var(--p2); text-decoration: none;">GitHub</a>
     <span style="color: var(--bd);">|</span>
-    <a href="#" style="color: var(--p2); text-decoration: none;">Contact Developer</a>
+    <a href="mailto:alfarobialfa1@gmail.com" style="color: var(--p2); text-decoration: none;">Contact Developer</a>
   </div>
   
   <p style="margin-top: 16px; font-size: 0.75rem; opacity: 0.7;">Audio generated dynamically via Web Speech API.<br>Hosted on GitHub Pages.</p>
@@ -207,7 +207,12 @@
  </form>
 </dialog>
 <dialog id="dlg">
- <div id="dK"></div><div id="dS"></div><div id="dW"></div><div id="dT" class="ipa"></div>
+ <div id="dK"></div><div id="dS"></div>
+ <div class="soundwave-viz" id="dlgWave" aria-hidden="true">
+   <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+   <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+ </div>
+ <div id="dW"></div><div id="dT" class="ipa"></div>
  <p id="dTip"></p>
  <div class="ctl"><button class="btn pri" id="bN" onclick="playD(.9)">Normal</button><button class="btn" id="bS" onclick="playD(.5)">Slow</button><button class="btn" id="rb" onclick="rec(this)">Record yourself</button></div>
  <div class="msg" id="rm2"></div><audio id="ra" controls class="hide"></audio>
