@@ -11,21 +11,29 @@
   h1{margin:0 0 4px;font-size:1.5rem}
   .sub{color:var(--mu);margin:0 0 20px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:1100px;margin:0 auto 16px}
-  input,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px 14px}
+  input,button{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px 14px;transition:all .25s cubic-bezier(.34,1.56,.64,1)}
   input{background:#120e26;color:var(--tx);width:260px;max-width:100%}
+  input:hover,input:focus{border-color:var(--ac);box-shadow:0 0 14px rgba(240,147,78,.3);outline:none}
   button{background:var(--ac);color:#201300;border:0;font-weight:700;cursor:pointer}
+  button:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 6px 18px rgba(240,147,78,.4)}
   button.ghost{background:transparent;color:var(--tx);border:1px solid var(--line)}
+  button.ghost:hover{border-color:var(--ac);color:var(--ac)}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .err{color:#ff8a8a;margin-top:10px;min-height:1.2em}
   .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-  .stat{background:#120e26;border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+  .stat{background:#120e26;border:1px solid var(--line);border-radius:12px;padding:10px 16px;transition:all .25s cubic-bezier(.34,1.56,.64,1)}
+  .stat:hover{transform:translateY(-3px);border-color:var(--ac);box-shadow:0 8px 18px rgba(0,0,0,.35)}
   .stat b{display:block;font-size:1.4rem}
   .wrap{overflow-x:auto}
   table{border-collapse:collapse;width:100%;min-width:760px}
   th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
   th{color:var(--mu);font-weight:600;font-size:.85rem;cursor:pointer;user-select:none}
-  .pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.8rem;font-weight:600}
+  .pill{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:.8rem;font-weight:600}
   .p-now{background:#143a2b;color:var(--ok)}
+  .p-now::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:6px;animation:livePulse 1.5s ease-in-out infinite}
+  @keyframes livePulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(95,211,154,.6)}50%{transform:scale(1.25);box-shadow:0 0 0 5px rgba(95,211,154,0)}}
+  tbody tr{transition:background-color .2s ease}
+  tbody tr:hover{background:rgba(255,255,255,.04)}
   .p-today{background:#3a3214;color:var(--warn)}
   .p-old{background:#2a2550;color:var(--mu)}
   .p-never{background:#2b1f2f;color:#d98aa0}
@@ -40,6 +48,15 @@
   @keyframes fl{0%{background:rgba(95,211,154,.38)}100%{background:transparent}}
   .pulse{animation:pl .5s ease}
   @keyframes pl{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+  @media (hover: hover) and (pointer: fine) {
+    .cursor-dot{position:fixed;top:0;left:0;width:8px;height:8px;background:var(--ac);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:opacity .25s,transform .12s ease-out;box-shadow:0 0 12px var(--ac)}
+    .cursor-ring{position:fixed;top:0;left:0;width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(240,147,78,.7);background:rgba(240,147,78,.05);pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:width .28s cubic-bezier(.34,1.56,.64,1),height .28s cubic-bezier(.34,1.56,.64,1),border-color .25s,background .25s,box-shadow .25s,opacity .25s;box-shadow:0 0 16px rgba(240,147,78,.2)}
+    .cursor-ring.hovering{width:54px;height:54px;border-color:var(--warn);background:rgba(242,193,78,.16);box-shadow:0 0 24px rgba(242,193,78,.45)}
+    .cursor-ring.clicking{width:26px;height:26px;border-color:var(--ok);background:rgba(95,211,154,.3);transform:translate(-50%,-50%) scale(.8)}
+    .cursor-sparkle{position:fixed;pointer-events:none;border-radius:50%;z-index:99997;animation:sparkleFade .65s cubic-bezier(.16,1,.3,1) forwards}
+    @keyframes sparkleFade{0%{transform:translate(-50%,-50%) scale(1);opacity:.9}100%{transform:translate(-50%,-50%) translateY(-14px) scale(.2);opacity:0}}
+  }
+  @media (hover: none) or (pointer: coarse){.cursor-dot,.cursor-ring,.cursor-sparkle{display:none!important}}
 </style>
 </head>
 <body>
@@ -218,6 +235,47 @@ document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => {
   const k = th.dataset.k;
   sortDir = sortKey === k ? -sortDir : 1; sortKey = k; render();
 });
+
+/* interactive acoustic cursor follower */
+function initCursor(){
+ if(!window.matchMedia||!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
+ if(document.querySelector('.cursor-dot'))return;
+ const dot=document.createElement('div');dot.className='cursor-dot';
+ const ring=document.createElement('div');ring.className='cursor-ring';
+ document.body.append(dot,ring);
+ let mouseX=-100,mouseY=-100,ringX=-100,ringY=-100,lastSparkle=0;
+ window.addEventListener('mousemove',e=>{
+  mouseX=e.clientX;mouseY=e.clientY;
+  dot.style.left=mouseX+'px';dot.style.top=mouseY+'px';
+  dot.style.opacity='1';ring.style.opacity='1';
+  const now=performance.now();
+  if(now-lastSparkle>65){
+   lastSparkle=now;
+   const sp=document.createElement('div');sp.className='cursor-sparkle';
+   const sz=Math.random()>.5?4:6;
+   const col=['#f0934e','#f2c14e','#5fd39a','#a79fd1'][Math.floor(Math.random()*4)];
+   sp.style.cssText=`left:${mouseX}px;top:${mouseY}px;width:${sz}px;height:${sz}px;background:${col};box-shadow:0 0 8px ${col};`;
+   document.body.appendChild(sp);
+   setTimeout(()=>sp.remove(),600);
+  }
+ });
+ document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0'});
+ document.addEventListener('mousedown',()=>ring.classList.add('clicking'));
+ document.addEventListener('mouseup',()=>ring.classList.remove('clicking'));
+ document.addEventListener('mouseover',e=>{
+  if(e.target.closest('button,a,input,select,.stat,th,tr'))ring.classList.add('hovering');
+ });
+ document.addEventListener('mouseout',e=>{
+  if(e.target.closest('button,a,input,select,.stat,th,tr'))ring.classList.remove('hovering');
+ });
+ function render(){
+  ringX+=(mouseX-ringX)*.18;ringY+=(mouseY-ringY)*.18;
+  ring.style.left=ringX+'px';ring.style.top=ringY+'px';
+  requestAnimationFrame(render);
+ }
+ requestAnimationFrame(render);
+}
+initCursor();
 </script>
 </body>
 </html>
