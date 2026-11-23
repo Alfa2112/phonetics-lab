@@ -122,7 +122,9 @@ let admin=false;try{admin=sessionStorage.getItem('admin')==='1'}catch(e){}
 let voice=null;
 function pickVoice(){const v=speechSynthesis.getVoices();voice=v.find(x=>x.lang==='en-GB')||v.find(x=>x.lang.startsWith('en'))||null}
 if(window.speechSynthesis){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-function say(w,r=.9){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(w);u.lang='en-GB';if(voice)u.voice=voice;u.rate=r;speechSynthesis.speak(u)}
+function say(w,r=.9){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(w);u.lang='en-GB';if(voice)u.voice=voice;u.rate=r;
+ const wv=$('dlgWave');if(wv){u.onstart=()=>wv.classList.add('playing');u.onend=()=>wv.classList.remove('playing');u.onerror=()=>wv.classList.remove('playing')}
+ speechSynthesis.speak(u)}
 
 /* login + navigation */
 $('lf').onsubmit=e=>{e.preventDefault();user={n:$('sn').value.trim(),no:$('sno').value};sv('user',user);apiTok=null;sv('tok',null);enter();apiLogin().catch(()=>{})};
@@ -143,8 +145,10 @@ const firstOpen=()=>{const g=GROUPS.find(g=>!done(g[0]));return g?g[0]:GROUPS[GR
 function toast(m){const t=$('toast');t.textContent=m;t.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.add('hide'),3000)}
 function burst(){if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
  const c=el('div','','burst');($('dlg').open?$('dlg'):document.body).append(c);
- for(let i=0;i<30;i++){const p=el('i');p.style.cssText=`left:${45+Math.random()*10}%;--x:${(Math.random()-.5)*90}vw;--y:${-(18+Math.random()*34)}vh;--r:${Math.random()*720-360}deg;background:${['#FF8A3D','#E8479B','#FFD65A','#F5F1FF'][i%4]};animation-delay:${Math.random()*.12}s`;c.append(p)}
- setTimeout(()=>c.remove(),1900)}
+ const colors=['#FF8A3D','#E8479B','#FFD65A','#5EE0A0','#A78BFA','#F5F1FF'];
+ for(let i=0;i<42;i++){const p=el('i');const sz=Math.random()>.5?`${8+Math.random()*6}px`:`${10+Math.random()*6}px`;const isRound=Math.random()>.6;
+  p.style.cssText=`left:${42+Math.random()*16}%;width:${sz};height:${isRound?sz:`${12+Math.random()*8}px`};border-radius:${isRound?'50%':'3px'};--x:${(Math.random()-.5)*100}vw;--y:${-(20+Math.random()*38)}vh;--r:${Math.random()*1080-540}deg;background:${colors[i%colors.length]};animation-delay:${Math.random()*.12}s`;c.append(p)}
+ setTimeout(()=>c.remove(),1950)}
 function enter(){
  $('login').classList.add('hide');$('app').classList.remove('hide');const nm=user.n.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase());$('wn').textContent=nm;$('bn').textContent=nm;$('bno').textContent='Class number '+user.no;menuSet(ld('menuC',false));
  if(!$('nav').children.length)AREAS.forEach(a=>{const b=el('button',a[1]);b.dataset.a=a[0];b.onclick=()=>go(a[2].find(p=>!locked(p))||a[2][0]);$('nav').append(b)});
@@ -174,7 +178,8 @@ function renderLearn(anim){if(!isOpen(grp))grp=firstOpen();const s=$('seg');s.in
  const g=$('grid');g.innerHTML='';g.classList.toggle('anim',!!anim);
  ALL.filter(x=>x.k===grp).forEach((x,n)=>{const r=recd.has(x.s);const b=el('button',`<b>/${x.s}/</b><span>${x.w}</span>${r?'<small>✓ recorded</small>':''}`,'card'+(r?' seen':'')+(x.s===lastRec?' just':''));b.style.setProperty('--i',n);b.onclick=()=>openD(x);g.append(b)});
  lastRec=null;lastUnlock=null}
-function beat(){const d=$('dS');d.classList.remove('sp');void d.offsetWidth;d.classList.add('sp')}
+function beat(){const d=$('dS');if(d){d.classList.remove('sp');void d.offsetWidth;d.classList.add('sp')}
+ const wv=$('dlgWave');if(wv){wv.classList.add('playing');clearTimeout(beat.t);beat.t=setTimeout(()=>wv.classList.remove('playing'),1100)}}
 function setSpeed(r){$('bN').classList.toggle('pri',r!==.5);$('bS').classList.toggle('pri',r===.5)}
 function playD(r){setSpeed(r);say(cur.w,r);beat()}
 function openD(x){cur=x;$('dK').textContent=x.k;$('dS').textContent='/'+x.s+'/';$('dW').textContent=x.w;$('dT').textContent='/'+x.t+'/';$('dTip').textContent=x.tip;
@@ -229,7 +234,10 @@ function nextPair(){pc=rnd(PAIRS);PW=[pc.x,pc.y];PA=Math.random()<.5?0:1;const o
  PW.forEach((w,i)=>{const b=el('button',`${w}<small>/${i?pc.b:pc.a}/</small>`,'opt');b.onclick=()=>{
    tot++;const good=i===PA;if(good){ok++;stk++}else stk=0;
    [...o.children].forEach((x,j)=>{x.disabled=true;if(j===PA)x.classList.add('ok');else if(j===i)x.classList.add('no')});
-   $('pgm').textContent=good?'Correct!':`Not quite. You heard “${PW[PA]}”.`;$('pgs').textContent=`Score ${ok}/${tot}. Streak ${stk}.`};o.append(b)});
+   $('pgm').textContent=good?'Correct!':`Not quite. You heard “${PW[PA]}”.`;
+   const stTxt=stk>=3?`<span class="streak-banner">🔥 Streak ${stk}</span>`:`Streak ${stk}.`;
+   $('pgs').innerHTML=`Score ${ok}/${tot}. ${stTxt}`;
+   if(good&&(stk===5||stk===10))burst()};o.append(b)});
  $('pgm').textContent='Listen, then choose the word you hear.';say(PW[PA],.8)}
 
 /* flashcards */
@@ -237,7 +245,8 @@ let deck=shuf(ALL),di=0,fl=0;
 function renderCard(){const x=deck[di];$('fc').classList.toggle('flip',!!fl);$('fF').textContent='/'+x.s+'/';
  $('fB').innerHTML=`<b style="font-family:inherit;font-size:1.8rem">${x.w}</b><span class="ipa">/${x.t}/</span><small>${x.tip}</small>`;$('fn').textContent=`Card ${di+1} of ${deck.length}`}
 function flipC(){fl=fl?0:1;$('fc').classList.toggle('flip',!!fl);if(fl)say(deck[di].w)}
-function moveC(n){di=(di+n+deck.length)%deck.length;fl=0;renderCard()}
+function moveC(n){const f=$('fc');if(f){f.classList.remove('slide-left','slide-right');void f.offsetWidth;f.classList.add(n>0?'slide-left':'slide-right');setTimeout(()=>f.classList.remove('slide-left','slide-right'),360)}
+ di=(di+n+deck.length)%deck.length;fl=0;renderCard()}
 
 /* per-student question sets: seeded by the class number (absen) */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -336,7 +345,8 @@ function finishQuiz(){$('qBox').classList.add('hide');$('qR').classList.remove('
  const s=QS[ql]||(QS[ql]={});s.best=Math.max(s.best==null?0:s.best,sc);s.att=(s.att||0)+1;sv('qLv',QS);best=Math.max(best,sc);sv('best',best);
  logEvent('quiz',{level:ql,score:sc,total:qs.length,explored:recd.size});
  $('rn').textContent=`${user.n} (class number ${user.no}), Level ${ql} ${LV[ql-1].t}`;$('rs').textContent=`${sc} / ${qs.length}`;
- $('rm').textContent=sc>=PASS?(ql<5?'Level passed. Level '+(ql+1)+' is ready when you are.':'Level passed. You finished every level.'):'Not passed yet. You need '+PASS+' correct. Review the answers below and try again: you get a new set of questions.';
+ if(sc>=PASS)burst();
+ $('rm').textContent=sc>=PASS?(ql<5?'🎉 Level passed! Level '+(ql+1)+' is ready when you are.':'🏆 Level passed! You finished every level.'):'Not passed yet. You need '+PASS+' correct. Review the answers below and try again: you get a new set of questions.';
  $('qNext').classList.toggle('hide',ql>=5);
  $('rw').innerHTML=wr.length?'<h3>Review</h3>'+wr.map(q=>`<p><b>${q.q}</b><br>${q.x}</p>`).join(''):''}
 
@@ -443,3 +453,44 @@ function dlCSV(){const L=['Not rated','Need practice','Getting there','Confident
 function menuSet(c){$('app').classList.toggle('collapsed',c);$('menuBtn').setAttribute('aria-expanded',String(!c));sv('menuC',c)}
 $('menuBtn').onclick=()=>menuSet(!$('app').classList.contains('collapsed'));
 if(user)enter();
+
+/* interactive acoustic cursor follower */
+function initCursor(){
+ if(!window.matchMedia||!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
+ if(document.querySelector('.cursor-dot'))return;
+ const dot=document.createElement('div');dot.className='cursor-dot';
+ const ring=document.createElement('div');ring.className='cursor-ring';
+ document.body.append(dot,ring);
+ let mouseX=-100,mouseY=-100,ringX=-100,ringY=-100,lastSparkle=0;
+ window.addEventListener('mousemove',e=>{
+  mouseX=e.clientX;mouseY=e.clientY;
+  dot.style.left=mouseX+'px';dot.style.top=mouseY+'px';
+  dot.style.opacity='1';ring.style.opacity='1';
+  const now=performance.now();
+  if(now-lastSparkle>65){
+   lastSparkle=now;
+   const sp=document.createElement('div');sp.className='cursor-sparkle';
+   const sz=Math.random()>.5?4:6;
+   const col=['#FF8A3D','#E8479B','#FFD65A','#5EE0A0'][Math.floor(Math.random()*4)];
+   sp.style.cssText=`left:${mouseX}px;top:${mouseY}px;width:${sz}px;height:${sz}px;background:${col};box-shadow:0 0 8px ${col};`;
+   document.body.appendChild(sp);
+   setTimeout(()=>sp.remove(),600);
+  }
+ });
+ document.addEventListener('mouseleave',()=>{dot.style.opacity='0';ring.style.opacity='0'});
+ document.addEventListener('mousedown',()=>ring.classList.add('clicking'));
+ document.addEventListener('mouseup',()=>ring.classList.remove('clicking'));
+ document.addEventListener('mouseover',e=>{
+  if(e.target.closest('button,a,input,select,.card,.opt,.tile,.dot,.esc-item,th,label[for],.area,.chips button,.duel button,.stat'))ring.classList.add('hovering');
+ });
+ document.addEventListener('mouseout',e=>{
+  if(e.target.closest('button,a,input,select,.card,.opt,.tile,.dot,.esc-item,th,label[for],.area,.chips button,.duel button,.stat'))ring.classList.remove('hovering');
+ });
+ function render(){
+  ringX+=(mouseX-ringX)*.18;ringY+=(mouseY-ringY)*.18;
+  ring.style.left=ringX+'px';ring.style.top=ringY+'px';
+  requestAnimationFrame(render);
+ }
+ requestAnimationFrame(render);
+}
+initCursor();
